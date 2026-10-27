@@ -1,7 +1,10 @@
 [package]
-name = "percolation"
+name = "bond_percolation"
 version = "0.1.0"
 edition = "2024"
+description = "Tools for generation and analyzing bond percolation lattices"
+license = "MIT"
+repository = "https://github.com/cyberSapoPerro/bond_percolation"
 
 [dependencies]
 rand = "0.10.3"
