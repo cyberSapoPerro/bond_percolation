@@ -42,11 +42,11 @@ This example generates a random square lattice of side length 30, with each edge
 Visualization requires the optional `plot` feature.
 
 ```rust
-use bond_percolation::Lattice;
+use bond_percolation::RandomLattice;
 use bond_percolation::plot::plot_lattice;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let lattice = Lattice::new_random(30, 0.5);
+    let lattice = RandomLattice::new_random(30, 0.5);
 
     plot_lattice(&lattice, "lattice.svg")?;
 
