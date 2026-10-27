@@ -1,6 +1,20 @@
 use plotters::prelude::*;
 use crate::RandomLatice;
 
+/// Renders a percolation lattice as an SVG image and saves it to the specified path.
+///
+/// Open edges are drawn and colored according to their cluster labels, while
+/// closed edges are omitted. The resulting image is a square with a fixed cell
+/// size and margin.
+///
+/// # Arguments
+///
+/// * `lattice` - The lattice to visualize.
+/// * `output_path` - The file path where the SVG image will be saved.
+///
+/// # Errors
+///
+/// Returns an error if drawing the image or saving the SVG file fails.
 pub fn graph_lattice(lattice: &RandomLatice, output_path: &str) 
     -> Result<(), Box<dyn std::error::Error>>  {
     let length = lattice.length();
