@@ -1,5 +1,9 @@
 use rand::RngExt;
 
+fn vertex_id(length: usize, row: usize, col: usize) -> usize {
+    row * length + col
+}
+
 struct UnionFind {
     parent: Vec<usize>,
     size: Vec<usize>,
@@ -45,22 +49,43 @@ impl UnionFind {
             )
             .collect()
     }
+
+    fn union_find_algorithm(
+        &mut self,
+        lattice: (&Vec<Vec<i32>>, &Vec<Vec<i32>>),
+        length: usize
+    ) {
+        let (horizontal_edges, vertical_edges) = lattice;
+        for (row, edges) in horizontal_edges.iter().enumerate() {
+            for (col, &is_open) in edges.iter().enumerate() {
+                if is_open == 1 {
+                    let u = vertex_id(row, col, length);
+                    let v = vertex_id(row, col + 1, length);
+                    self.union(u, v);
+                }
+            }
+        }
+        for (row, edges) in vertical_edges.iter().enumerate() {
+            for (col, &is_open) in edges.iter().enumerate() {
+                if is_open == 1 {
+                    let u = vertex_id(row, col, length);
+                    let v = vertex_id(row + 1, col, length);
+                    self.union(u, v);
+                }
+            }
+        }
+    }
 }
 
 /// A square lattice for bond percolation.
 ///
 /// The lattice consists of `length × length` vertices connected by
 /// horizontal and vertical edges. Each edge is independently opened
-/// according to the specified probability during construction.
+/// with the probability specified during construction.
 ///
-/// Open edges are represented by `1` and closed edges by `-1`.
-/// After [`union_find_algorithm`](RandomLatice::union_find_algorithm)
-/// is called, open edges are labeled with the identifier of the
-/// connected cluster containing their first endpoint.
-///
-/// The structure also provides methods to retrieve the lattice dimensions
-/// and edge configurations, and to obtain the sizes of connected clusters.
-pub struct RandomLatice {
+/// Inactive edges are labeled -1. Labels greater than or equal to 1
+/// identify connected clusters.
+pub struct Lattice {
     length: usize,
     horizontal_edges: Vec<Vec<i32>>,
     vertical_edges: Vec<Vec<i32>>,
@@ -68,12 +93,12 @@ pub struct RandomLatice {
 }
 
 #[derive(Debug)]
-pub enum RandomLaticeError {
+pub enum LatticeError {
     ShortLengthSize,
     ParameterOutOfBounds,
 }
 
-impl std::fmt::Display for RandomLaticeError {
+impl std::fmt::Display for LatticeError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::ShortLengthSize => {
@@ -86,38 +111,40 @@ impl std::fmt::Display for RandomLaticeError {
     }
 }
 
-impl std::error::Error for RandomLaticeError {}
+impl std::error::Error for LatticeError {}
 
-impl RandomLatice {
+impl Lattice {
     /// Returns the side length of the square lattice, measured in vertices.
     pub fn length(&self) -> usize {
         self.length
     }
 
-    /// Returns the horizontal edges of the lattice.
+    /// Returns references to the horizontal and vertical edge matrices.
     ///
-    /// Each row contains `length - 1` edges. An edge is represented by `1`
-    /// if it is open, or `-1` if it is closed. After calling
-    /// [`union_find_algorithm`](Self::union_find_algorithm), open edges
-    /// contain the label of their connected cluster instead.
-    pub fn horizontal_edges(&self) -> &[Vec<i32>] {
-        &self.horizontal_edges
+    /// The returned tuple contains:
+    ///
+    /// - The horizontal edge matrix, with dimensions
+    ///   `length × (length - 1)`.
+    /// - The vertical edge matrix, with dimensions
+    ///   `(length - 1) × length`.
+    ///
+    /// Every open edge contains the root vertex identifier of its connected component.
+    /// Closed edges remain represented by `-1`.
+    ///
+    /// The returned references provide read-only access to the matrices.
+    pub fn lattice(&self) -> (&[Vec<i32>], &[Vec<i32>]) {
+        (&self.horizontal_edges, &self.vertical_edges)
     }
 
-    /// Returns the vertical edges of the lattice.
+    /// Creates a random square lattice for bond percolation.
     ///
-    /// Each row contains `length` edges. An edge is represented by `1`
-    /// if it is open, or `-1` if it is closed. After calling
-    /// [`union_find_algorithm`](Self::union_find_algorithm), open edges
-    /// contain the label of their connected cluster instead.
-    pub fn vertical_edges(&self) -> &[Vec<i32>] {
-        &self.vertical_edges
-    }
-
-    /// Creates a square lattice for bond percolation.
+    /// Each horizontal and vertical edge is independently opened with
+    /// probability `parameter` and closed with probability `1 - parameter`.
     ///
-    /// Each edge is independently opened with probability `parameter`
-    /// and closed with probability `1 - parameter`.
+    /// After generating the edges, the method identifies connected
+    /// components using the union-find algorithm and labels every open edge
+    /// with the root vertex identifier of the component containing its
+    /// first endpoint.
     ///
     /// # Arguments
     ///
@@ -125,20 +152,54 @@ impl RandomLatice {
     /// * `parameter` - Probability of an edge being open, in the interval
     ///   `[0, 1]`.
     ///
+    /// # Returns
+    ///
+    /// A `Result` containing the constructed lattice on success, or a
+    /// `RandomLaticeError` if an argument is invalid.
+    ///
     /// # Errors
     ///
-    /// Returns [`RandomLaticeError::ShortLengthSize`] if `length` is less
-    /// than `2`, or [`RandomLaticeError::ParameterOutOfBounds`] if
-    /// `parameter` is outside `[0, 1]` or is NaN.
-    pub fn new(length: usize, parameter: f64) -> Result<Self, RandomLaticeError> {
+    /// Returns [`LatticeError::ShortLengthSize`] if `length < 2`.
+    ///
+    /// Returns [`LatticeError::ParameterOutOfBounds`] if `parameter`
+    /// is outside `[0, 1]` or is NaN.
+    pub fn new(length: usize, parameter: f64) -> Result<Self, LatticeError> {
 
         if length < 2 {
-            return Err(RandomLaticeError::ShortLengthSize)
+            return Err(LatticeError::ShortLengthSize)
         }
         if !(0.0..=1.0).contains(&parameter) {
-            return Err(RandomLaticeError::ParameterOutOfBounds)
+            return Err(LatticeError::ParameterOutOfBounds)
         }
 
+        let (mut horizontal_edges, mut vertical_edges) =
+            Lattice::generate_random_edges(length, parameter);
+        let mut uf = UnionFind::new(length*length);
+
+        uf.union_find_algorithm(
+            (&horizontal_edges, &vertical_edges),
+            length
+            );
+
+        Lattice::label_lattice(
+            (&mut horizontal_edges, &mut vertical_edges), 
+            length, 
+            &mut uf
+            );
+
+
+        Ok(Self {
+            length,
+            horizontal_edges,
+            vertical_edges,
+            union_find: uf,
+        })
+    }
+
+    fn generate_random_edges(
+        length: usize,
+        parameter: f64
+    ) -> (Vec<Vec<i32>>, Vec<Vec<i32>>) {
         let mut rng = rand::rng();
 
         let mut horizontal_edges = vec![vec![0; length - 1]; length];
@@ -154,62 +215,28 @@ impl RandomLatice {
                 *edge = if rng.random_bool(parameter) {1} else {-1}
             }
         }
-        Ok(Self {
-            length,
-            horizontal_edges,
-            vertical_edges,
-            union_find: UnionFind::new(length*length),
-        })
+        (horizontal_edges, vertical_edges)
     }
 
-    fn vertex_id(&self, row: usize, col: usize) -> usize {
-        row * self.length + col
-    }
-
-    /// Applies the Union-Find algorithm to identify connected clusters.
-    ///
-    /// Vertices connected by open edges are merged into the same cluster.
-    /// The method then labels each open edge with the identifier of the
-    /// cluster containing its first endpoint. Closed edges remain unchanged.
-    ///
-    /// Calling this method modifies the edge arrays. The labels are internal
-    /// vertex identifiers and are not guaranteed to be consecutive cluster
-    /// numbers.
-    pub fn union_find_algorithm(&mut self) {
-        // Union Find Algortihm
-        for (row, edges) in self.horizontal_edges.iter().enumerate() {
-            for (col, &is_open) in edges.iter().enumerate() {
-                if is_open == 1 {
-                    let u = self.vertex_id(row, col);
-                    let v = self.vertex_id(row, col + 1);
-                    self.union_find.union(u, v);
+    fn label_lattice(
+        lattice: (&mut Vec<Vec<i32>>, &mut Vec<Vec<i32>>),
+        length: usize,
+        uf: &mut UnionFind,
+        ){
+        let (horizontal_edges, vertical_edges) = lattice;
+        for row in 0..length {
+            for col in 0..length - 1 {
+                if horizontal_edges[row][col] == 1 {
+                    let u = vertex_id(row, col, length);
+                    horizontal_edges[row][col] = uf.find(u) as i32;
                 }
             }
         }
-        for (row, edges) in self.vertical_edges.iter().enumerate() {
-            for (col, &is_open) in edges.iter().enumerate() {
-                if is_open == 1 {
-                    let u = self.vertex_id(row, col);
-                    let v = self.vertex_id(row + 1, col);
-                    self.union_find.union(u, v);
-                }
-            }
-        }
-
-        // Labeling
-        for row in 0..self.length {
-            for col in 0..self.length - 1 {
-                if self.horizontal_edges[row][col] == 1 {
-                    let u = self.vertex_id(row, col);
-                    self.horizontal_edges[row][col] = self.union_find.find(u) as i32;
-                }
-            }
-        }
-        for row in 0..self.length - 1 {
-            for col in 0..self.length {
-                if self.vertical_edges[row][col] == 1 {
-                    let u = self.vertex_id(row, col);
-                    self.vertical_edges[row][col] = self.union_find.find(u) as i32;
+        for row in 0..length - 1 {
+            for col in 0..length {
+                if vertical_edges[row][col] == 1 {
+                    let u = vertex_id(row, col, length);
+                    vertical_edges[row][col] = uf.find(u) as i32;
                 }
             }
         }
