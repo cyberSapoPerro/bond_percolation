@@ -55,7 +55,3 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 ```
 
 This example generates a random lattice and saves its visualization to `lattice.svg`.
-
-## License
-
-See the `LICENSE` file for license information.
