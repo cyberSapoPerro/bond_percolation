@@ -92,9 +92,12 @@ pub struct Lattice {
     union_find: UnionFind,
 }
 
+/// Errors that can occur when creating or manipulating a [`Lattice`].
 #[derive(Debug)]
 pub enum LatticeError {
+    /// The lattice length must be at least 2.
     ShortLengthSize,
+    /// The percolation parameter must be within the interval `[0, 1]`.
     ParameterOutOfBounds,
 }
 
