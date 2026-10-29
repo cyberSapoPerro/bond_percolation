@@ -1,6 +1,6 @@
 use rand::RngExt;
 
-fn vertex_id(length: usize, row: usize, col: usize) -> usize {
+fn vertex_id(row: usize, col: usize, length: usize) -> usize {
     row * length + col
 }
 
@@ -155,7 +155,7 @@ impl Lattice {
     /// # Returns
     ///
     /// A `Result` containing the constructed lattice on success, or a
-    /// `RandomLaticeError` if an argument is invalid.
+    /// `LatticeError` if an argument is invalid.
     ///
     /// # Errors
     ///
@@ -259,7 +259,7 @@ impl Lattice {
         top.iter()
             .any(
                 |&cluster|
-                cluster != 1 && bottom.contains(&cluster)
+                cluster != -1 && bottom.contains(&cluster)
                 )
     }
 }
