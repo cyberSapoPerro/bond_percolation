@@ -8,14 +8,14 @@ Add `bond_percolation` to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-bond_percolation = "0.1"
+bond_percolation = "0.1.1"
 ```
 
 To enable lattice visualization, activate the optional `plot` feature:
 
 ```toml
 [dependencies]
-bond_percolation = { version = "0.1", features = ["plot"] }
+bond_percolation = { version = "0.1.1", features = ["plot"] }
 ```
 
 ## Usage
