@@ -250,4 +250,19 @@ impl Lattice {
     pub fn get_clusters_size(&self) -> Vec<usize> {
         self.union_find.get_clusters_data()
     }
+
+    /// Returns true if there is a cluster that goes from the top to the bottom of the lattice.
+    pub fn percolation(&self) -> bool {
+        let top = &self.horizontal_edges[0];
+        let bottom = &self.horizontal_edges[self.length - 1];
+        for &cluster in top {
+            if cluster == -1 {
+                continue;
+            }
+            if bottom.contains(&cluster) {
+                return true;
+            }
+        }
+        false
+    }
 }
