@@ -255,14 +255,11 @@ impl Lattice {
     pub fn percolation(&self) -> bool {
         let top = &self.horizontal_edges[0];
         let bottom = &self.horizontal_edges[self.length - 1];
-        for &cluster in top {
-            if cluster == -1 {
-                continue;
-            }
-            if bottom.contains(&cluster) {
-                return true;
-            }
-        }
-        false
+
+        top.iter()
+            .any(
+                |&cluster|
+                cluster != 1 && bottom.contains(&cluster)
+                )
     }
 }
