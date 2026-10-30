@@ -6,16 +6,14 @@ A Rust library for generating random lattices and analyzing clusters in bond per
 
 Add `bond_percolation` to your `Cargo.toml`:
 
-```toml
-[dependencies]
-bond_percolation = "0.1.1"
+```bash
+cargo add bond_percolation
 ```
 
 To enable lattice visualization, activate the optional `plot` feature:
 
 ```toml
-[dependencies]
-bond_percolation = { version = "0.1.1", features = ["plot"] }
+cargo add bond_percolation --features plot
 ```
 
 ## Usage
@@ -27,13 +25,13 @@ use bond_percolation::Lattice;
 
 fn main() {
     let lattice = Lattice::new(30, 0.5);
-    let sizes = lattice.get_clusters_size();
 
-    println!("{:?}", sizes);
+    println!("{:?}", lattice.get_clusters_size());
+    println!("{}", lattice.percolation());
 }
 ```
 
-This example generates a random square lattice of side length 30, with each edge independently open with probability 0.5. It then identifies connected clusters using a Union-Find algorithm and retrieves their sizes.
+This example generates a random square lattice of side length 30, where each edge is independently open with probability 0.5. It then identifies connected components using a Union-Find algorithm, retrieves their sizes, and determines whether a percolating cluster exists.
 
 ### Visualize a lattice
 

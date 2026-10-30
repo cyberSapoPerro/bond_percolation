@@ -1,6 +1,6 @@
 [package]
 name = "bond_percolation"
-version = "0.1.2"
+version = "0.1.3"
 edition = "2024"
 description = "Tools for generation and analyzing bond percolation lattices"
 license = "MIT"
