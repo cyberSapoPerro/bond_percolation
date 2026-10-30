@@ -12,7 +12,7 @@ cargo add bond_percolation
 
 To enable lattice visualization, activate the optional `plot` feature:
 
-```toml
+```bash
 cargo add bond_percolation --features plot
 ```
 
